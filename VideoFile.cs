@@ -47,7 +47,19 @@ namespace FFMpegNet
             private set;
         }
 
+        public double Fps
+        {
+            get;
+            private set;
+        }
+
         public Size Dimensions
+        {
+            get;
+            private set;
+        }
+
+        public DateTime Created
         {
             get;
             private set;
@@ -120,7 +132,6 @@ namespace FFMpegNet
                 OutputFilePath = tempFile,
             };
 
-            ;
             string output = FFMpegService.Execute(parameters);
 
             if (!File.Exists(tempFile))
@@ -151,7 +162,9 @@ namespace FFMpegNet
             AudioBitRate = InfoProcessor.GetAudioBitRate(output);
             AudioFormat = InfoProcessor.GetAudioFormat(output);
             VideoFormat = InfoProcessor.GetVideoFormat(output);
+            Fps = InfoProcessor.GetVideoFps(VideoFormat);
             Dimensions = InfoProcessor.GetVideoDimensions(output);
+            Created = InfoProcessor.GetCreationTime(output);
         }
 
         public string WatermarkVideo(string watermarkImageFilePath, bool overwrite, WatermarkPosition position, Point offset)
