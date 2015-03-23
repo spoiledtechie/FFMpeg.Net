@@ -16,9 +16,11 @@ namespace FFMpegNet
         public string Format;
         public Size Size = Size.Empty;
         public bool Overwrite;
-        public bool SameQ;
+        public bool QScale;
         public bool DisableAudio;
 
+        public string ComplexVideoFilterInputs;
+        public string ComplexVideoFilterCommands;
         public string VideoFilter;
         public string VideoProfile;
         public string Preset;
@@ -62,6 +64,15 @@ namespace FFMpegNet
             m_assembledOptions.Append(" ");
             AddParameter(parameter);
         }
+        protected void AddComplexOption(string option, string inputs, string commands)
+        {
+            m_assembledOptions.Append(" ");
+            AddParameter(inputs);
+            AddOption(option);
+            m_assembledOptions.Append(" \"");
+            AddParameter(commands);
+            m_assembledOptions.Append("\"");
+        }
 
         protected void AddOption(string option, string parameter1, string separator, string parameter2)
         {
@@ -84,9 +95,9 @@ namespace FFMpegNet
 
         protected void AssembleGeneralOptions()
         {
-            if (SameQ)
+            if (QScale)
             {
-                AddOption("sameq");
+                AddOption("qscale 0");
             }
 
             if (Overwrite)
@@ -108,6 +119,15 @@ namespace FFMpegNet
             {
                 AddSeparator(" ");
                 AddRawOptions(OutputOptions);
+            }
+
+        }
+
+        protected void AssembleComplexOutputOptions()
+        {
+            if (!String.IsNullOrWhiteSpace(ComplexVideoFilterInputs))
+            {
+                AddComplexOption("filter_complex", ComplexVideoFilterInputs, ComplexVideoFilterCommands);
             }
 
         }
@@ -215,6 +235,7 @@ namespace FFMpegNet
 
             AssembleOutputOptions();
 
+            AssembleComplexOutputOptions();
 
             if (String.IsNullOrWhiteSpace(OutputFilePath))
             {
@@ -225,7 +246,7 @@ namespace FFMpegNet
             {
                 AddSeparator(" ");
                 AddParameter(String.Format("\"{0}\"", OutputFilePath));
-            } 
+            }
 
             return m_assembledOptions.ToString();
         }

@@ -43,10 +43,13 @@
   <ItemGroup>
     <Compile Include="FFMPEG.cs" />
     <Compile Include="FFMPEGParameters.cs" />
+    <Compile Include="Filters\Overlay.cs" />
     <Compile Include="Images\ImageType.cs" />
     <Compile Include="InfoProcessor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="VideoFile.cs" />
+    <Compile Include="Utilities\Time.cs" />
+    <Compile Include="Videos\VideoFile.cs" />
+    <Compile Include="Videos\VideoFormat.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
