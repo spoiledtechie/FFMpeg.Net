@@ -26,6 +26,7 @@ namespace FFMpegNet
 
     public class VideoFile
     {
+
         public TimeSpan Duration
         {
             get;
@@ -283,58 +284,80 @@ namespace FFMpegNet
 
         public string OverlayVideo(bool overwrite, List<Overlay> overlays)
         {
-            string VideoFilterInputs = string.Empty;
-            string VideoFilterCommands = string.Empty;
             string overLays = string.Empty;
+            string tempOutputFile = string.Empty;
+
+            string testParamsLength = string.Empty;
 
             for (int i = 0; i < overlays.Count; i++)
             {
-                overlays[i].Path = Path.ChangeExtension(Path.GetTempFileName(), "png");
+                if (overlays[i].Size.Width > 0 && overlays[i].Size.Height > 0)
+                {
+                    overlays[i].Path = Path.ChangeExtension(Path.GetTempFileName(), "png");
 
-                Bitmap bmp = new Bitmap(overlays[i].Size.Width, overlays[i].Size.Height);
-                Graphics g = Graphics.FromImage(bmp);
+                    Bitmap bmp = new Bitmap(overlays[i].Size.Width, overlays[i].Size.Height);
+                    Graphics g = Graphics.FromImage(bmp);
 
-                Brush brush = new SolidBrush(Color.Black);
-                g.FillRectangle(brush, 0, 0, overlays[i].Size.Width, overlays[i].Size.Height);
+                    Brush brush = new SolidBrush(Color.Black);
+                    g.FillRectangle(brush, 0, 0, overlays[i].Size.Width, overlays[i].Size.Height);
 
-                g.Flush();
-                bmp.Save(overlays[i].Path, System.Drawing.Imaging.ImageFormat.Png);
-                VideoFilterInputs += overlays[i].InitializeOutputString;
+                    g.Flush();
+                    bmp.Save(overlays[i].Path, System.Drawing.Imaging.ImageFormat.Png);
+                    testParamsLength += overlays[i].InitializeOutputString;
+                }
 
             }
 
             for (int i = 0; i < overlays.Count; i++)
             {
-                VideoFilterCommands += overlays[i].OutputProcessString;
+                if (overlays[i].Size.Width > 0 && overlays[i].Size.Height > 0)
+                {
+                    testParamsLength += overlays[i].OutputProcessString;
 
-                if (i != (overlays.Count - 1))
-                    VideoFilterCommands += ",";
+                    if (i != (overlays.Count - 1))
+                        testParamsLength += ",";
+                }
             }
 
-
-            string extension = Path.GetExtension(FilePath);
-            string tempOutputFile = Path.ChangeExtension(Path.GetTempFileName(), extension);
-
-
-            FFMPEGParameters parameters = new FFMPEGParameters
+            int maxCharCount = Convert.ToInt32(ConfigurationManager.AppSettings["MaxCharacterCountForCommandParams"]);
+            //commandprompt only allows 32,000 character params.  
+            //if the test params are over that, we need to split up the overlay params, so we will make multiple passes on the file 
+            //until we satisfy all the overlays.
+            if (testParamsLength.Length > maxCharCount)
             {
-                InputFilePath = FilePath,
-                OutputFilePath = tempOutputFile,
-                ComplexVideoFilterInputs = VideoFilterInputs,
-                ComplexVideoFilterCommands = VideoFilterCommands
-            };
+                //split up command and output.
+                int passesToMake = (int)Math.Ceiling(testParamsLength.Length / (double)maxCharCount);
+                string tempFilePath = FilePath;
+                int totalOverlays = overlays.Count;
 
+                int overlayCountForBatches = totalOverlays / (int)passesToMake;
 
-            string output = FFMpegService.Execute(parameters);
-            if (File.Exists(tempOutputFile) == false)
-            {
-                throw new ApplicationException(String.Format("Failed to watermark video {0}{1}{2}", FilePath, Environment.NewLine, output));
+                List<List<Overlay>> overlayBatches = new List<List<Overlay>>();
+                for (int i = 1; i <= passesToMake; i++)
+                {
+                    Debug.WriteLine(i);
+                    List<Overlay> batch = new List<Overlay>();
+                    for (int j = 0; j <= overlayCountForBatches; j++)
+                    {
+                        Debug.WriteLine(j);
+                        if (overlays[i * j] != null)
+                        {
+                            batch.Add(overlays[i * j]);
+                        }
+                    }
+                    overlayBatches.Add(batch);
+                }
+
+                foreach (var batch in overlayBatches)
+                {
+                    tempFilePath = SingleOverlayPass(batch, tempFilePath);
+                }
+
             }
-
-            FileInfo watermarkedVideoFileInfo = new FileInfo(tempOutputFile);
-            if (watermarkedVideoFileInfo.Length == 0)
+            else
             {
-                throw new ApplicationException(String.Format("Failed to watermark video {0}{1}{2}", FilePath, Environment.NewLine, output));
+                //single output needed
+                tempOutputFile = SingleOverlayPass(overlays, FilePath);
             }
 
             if (overwrite)
@@ -345,6 +368,57 @@ namespace FFMpegNet
                 return FilePath;
             }
 
+            return tempOutputFile;
+        }
+
+        private string SingleOverlayPass(List<Overlay> overlays, string inputFile)
+        {
+            string VideoFilterInputs = string.Empty;
+            string VideoFilterCommands = string.Empty;
+
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                if (overlays[i].Size.Width > 0 && overlays[i].Size.Height > 0)
+                {
+                    VideoFilterInputs += overlays[i].InitializeOutputString;
+                }
+
+            }
+
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                if (overlays[i].Size.Width > 0 && overlays[i].Size.Height > 0)
+                {
+                    VideoFilterCommands += overlays[i].OutputProcessString;
+
+                    if (i != (overlays.Count - 1))
+                        VideoFilterCommands += ",";
+                }
+            }
+
+
+            string extension = Path.GetExtension(inputFile);
+            string tempOutputFile = Path.ChangeExtension(Path.GetTempFileName(), extension);
+
+            FFMPEGParameters parameters = new FFMPEGParameters
+            {
+                InputFilePath = inputFile,
+                OutputFilePath = tempOutputFile,
+                ComplexVideoFilterInputs = VideoFilterInputs,
+                ComplexVideoFilterCommands = VideoFilterCommands
+            };
+
+            string output = FFMpegService.Execute(parameters);
+            if (File.Exists(tempOutputFile) == false)
+            {
+                throw new ApplicationException(String.Format("Failed to overlay video {0}{1}{2}", inputFile, Environment.NewLine, output));
+            }
+
+            FileInfo watermarkedVideoFileInfo = new FileInfo(tempOutputFile);
+            if (watermarkedVideoFileInfo.Length == 0)
+            {
+                throw new ApplicationException(String.Format("Failed to overlay video {0}{1}{2}", inputFile, Environment.NewLine, output));
+            }
             return tempOutputFile;
         }
 
