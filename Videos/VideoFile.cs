@@ -281,7 +281,12 @@ namespace FFMpegNet
 
             return tempOutputFile;
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="overwrite"></param>
+        /// <param name="overlays"></param>
+        /// <returns>the file name the video was saved to.</returns>
         public string OverlayVideo(bool overwrite, List<Overlay> overlays)
         {
             string overLays = string.Empty;
@@ -340,7 +345,7 @@ namespace FFMpegNet
                     for (int j = 0; j <= overlayCountForBatches; j++)
                     {
                         Debug.WriteLine(j);
-                        if (overlays[i * j] != null)
+                        if (i * j < overlays.Count)
                         {
                             batch.Add(overlays[i * j]);
                         }
@@ -352,7 +357,7 @@ namespace FFMpegNet
                 {
                     tempFilePath = SingleOverlayPass(batch, tempFilePath);
                 }
-
+                tempOutputFile = tempFilePath;
             }
             else
             {
@@ -366,6 +371,11 @@ namespace FFMpegNet
                 File.Move(tempOutputFile, FilePath);
 
                 return FilePath;
+            }
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                if (!string.IsNullOrEmpty(overlays[i].Path) && File.Exists(overlays[i].Path))
+                    File.Delete(overlays[i].Path);
             }
 
             return tempOutputFile;
