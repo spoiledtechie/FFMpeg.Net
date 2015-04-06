@@ -41,6 +41,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Audio\AudioFormat.cs" />
+    <Compile Include="Audio\AudioFile.cs" />
     <Compile Include="FFMPEG.cs" />
     <Compile Include="FFMPEGParameters.cs" />
     <Compile Include="Filters\Overlay.cs" />

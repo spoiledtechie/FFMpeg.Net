@@ -8,6 +8,7 @@ using FFMpegNet.Images;
 using System.Drawing.Imaging;
 using FFMpegNet.Videos;
 using FFMpegNet.Filters;
+using FFMpegNet.Audio;
 
 namespace FFMpegNet
 {
@@ -86,6 +87,8 @@ namespace FFMpegNet
             {
                 throw new Exception(String.Format("The video file {0} does not exist.", FilePath));
             }
+
+
 
             FilePath = filePath;
             GetVideoInfo();
@@ -191,6 +194,124 @@ namespace FFMpegNet
 
             return tempFile;
         }
+
+        public string MergeAudioSegment(string audioFile, VideoFormat type)
+        {
+            //ffmpeg -i tmpVideo.mpg -i tmpAudioRB.wav -vcodec copy finalVideow_6.mpg
+
+            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+
+            List<string> files = new List<string>();
+            files.Add(audioFile);
+
+            FFMPEGParameters parameters = new FFMPEGParameters()
+            {
+                InputFilePath = FilePath,
+                DisableAudio = false,
+                AdditionalFileInputs = files,
+                OutputOptions = String.Format("-map 0:0 -map 1:0 -vcodec copy -acodec copy"),
+                OutputFilePath = tempFile,
+            };
+
+            string output = FFMpegService.Execute(parameters);
+
+            if (!File.Exists(tempFile))
+            {
+                throw new Exception("Could not create single frame image from video clip");
+            }
+
+            return tempFile;
+        }
+
+        public string MergeAudioSegments(List<string> audioFiles, VideoFormat type)
+        {
+
+            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+
+            List<string> files = audioFiles;
+
+            string outputOptions = string.Empty;
+
+            string copyAll = " -c:v copy -c:a copy";
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                outputOptions += "-map " + (i + 1) + ":0";
+                if (i + files.Count < files.Count)
+                    outputOptions += " ";
+            }
+
+            FFMPEGParameters parameters = new FFMPEGParameters()
+            {
+                InputFilePath = FilePath,
+                DisableAudio = false,
+                AdditionalFileInputs = files,
+                OutputOptions = outputOptions + copyAll,
+                OutputFilePath = tempFile,
+            };
+
+            string output = FFMpegService.Execute(parameters);
+
+            if (!File.Exists(tempFile))
+            {
+                throw new Exception("Could not create single frame image from video clip");
+            }
+
+            return tempFile;
+        }
+
+        public string ExtractAudioSegment(AudioFormat type)
+        {
+            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+
+            FFMPEGParameters parameters = new FFMPEGParameters()
+            {
+                InputFilePath = FilePath,
+                DisableAudio = false,
+                OutputOptions = String.Format("-vn"),
+                OutputFilePath = tempFile,
+
+            };
+
+            string output = FFMpegService.Execute(parameters);
+
+            if (!File.Exists(tempFile))
+            {
+                throw new Exception("Could not extract Audio From Video Clip");
+            }
+
+            return tempFile;
+        }
+
+
+        public string ExtractAudioSegment(long ticksToExtract, long ticksTimeLapse, AudioFormat type)
+        {
+            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+            var span = TimeSpan.FromTicks(ticksToExtract);
+            var spanTo = TimeSpan.FromTicks(ticksTimeLapse - ticksToExtract);
+
+            if (span > Duration)
+                throw new Exception("Time is larger than actual video");
+
+            FFMPEGParameters parameters = new FFMPEGParameters()
+            {
+                InputFilePath = FilePath,
+                DisableAudio = false,
+                OutputOptions = String.Format("-vn -ss {0} -t {1}", span.Hours.ToString("D2") + ":" + span.Minutes.ToString("D2") + ":" + span.Seconds.ToString("D2") + "." + span.Milliseconds.ToString("D3"), spanTo.Hours.ToString("D2") + ":" + spanTo.Minutes.ToString("D2") + ":" + spanTo.Seconds.ToString("D2") + "." + spanTo.Milliseconds.ToString("D3")),
+                OutputFilePath = tempFile,
+
+            };
+
+            string output = FFMpegService.Execute(parameters);
+
+            if (!File.Exists(tempFile))
+            {
+                throw new Exception("Could not extract Audio From Video Clip");
+            }
+
+            return tempFile;
+        }
+
 
 
         protected void GetVideoInfo()

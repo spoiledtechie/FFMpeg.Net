@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Drawing;
+using System.Collections.Generic;
 
 namespace FFMpegNet
 {
@@ -8,6 +9,7 @@ namespace FFMpegNet
     {
         public string OutputFilePath;
         public string InputFilePath;
+        public List<string> AdditionalFileInputs;
         public string Options;
         public string InputOptions;
         public string OutputOptions;
@@ -39,6 +41,7 @@ namespace FFMpegNet
 
         public FFMPEGParameters()
         {
+            AdditionalFileInputs = new List<string>();
             m_assembledOptions = new StringBuilder();
         }
 
@@ -232,6 +235,13 @@ namespace FFMpegNet
             {
                 AddOption("i", String.Format("\"{0}\"", InputFilePath));
             }
+
+            foreach (var file in AdditionalFileInputs)
+            {
+                if (!String.IsNullOrEmpty(file))
+                    AddOption("i", String.Format("\"{0}\"", file));
+            }
+
 
             AssembleOutputOptions();
 
