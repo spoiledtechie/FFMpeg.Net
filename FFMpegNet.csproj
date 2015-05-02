@@ -47,6 +47,8 @@
     <Compile Include="FFMPEGParameters.cs" />
     <Compile Include="Filters\Overlay.cs" />
     <Compile Include="Filters\OverlayComparer.cs" />
+    <Compile Include="Filters\OverlayType.cs" />
+    <Compile Include="Images\ImageHelper.cs" />
     <Compile Include="Images\ImageType.cs" />
     <Compile Include="InfoProcessor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

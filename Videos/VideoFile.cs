@@ -412,8 +412,12 @@ namespace FFMpegNet
         {
             string overLays = string.Empty;
             string tempOutputFile = string.Empty;
-
             string testParamsLength = string.Empty;
+            long lastTimeImageExtracted = -10000000;
+            Image imageFromFrame = null;
+            Bitmap bitmapFromImage = null;
+            int MillisecondsToCutNewFrameWithBlur = Convert.ToInt32(ConfigurationManager.AppSettings["MillisecondsToCutNewFrameWithBlur"]);
+            int PixelateSize = Convert.ToInt32(ConfigurationManager.AppSettings["PixelateSize"]);
 
             for (int i = 0; i < overlays.Count; i++)
             {
@@ -421,14 +425,38 @@ namespace FFMpegNet
                 {
                     overlays[i].Path = Path.ChangeExtension(Path.GetTempFileName(), "png");
 
-                    Bitmap bmp = new Bitmap(overlays[i].Size.Width, overlays[i].Size.Height);
-                    Graphics g = Graphics.FromImage(bmp);
+                    if (overlays[i].OverlayType == OverlayType.Ellipse || overlays[i].OverlayType == OverlayType.Rectangle)
+                    {
+                        Bitmap bmp = new Bitmap(overlays[i].Size.Width, overlays[i].Size.Height);
+                        Graphics g = Graphics.FromImage(bmp);
 
-                    Brush brush = new SolidBrush(Color.Black);
-                    g.FillRectangle(brush, 0, 0, overlays[i].Size.Width, overlays[i].Size.Height);
+                        Brush brush = new SolidBrush(Color.Black);
+                        if (overlays[i].OverlayType == OverlayType.Rectangle)
+                            g.FillRectangle(brush, 0, 0, overlays[i].Size.Width, overlays[i].Size.Height);
+                        else if (overlays[i].OverlayType == OverlayType.Ellipse)
+                            g.FillEllipse(brush, 0, 0, overlays[i].Size.Width, overlays[i].Size.Height);
 
-                    g.Flush();
-                    bmp.Save(overlays[i].Path, System.Drawing.Imaging.ImageFormat.Png);
+                        g.Flush();
+                        bmp.Save(overlays[i].Path, System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                    else if (overlays[i].OverlayType == OverlayType.Rectangle_Blur)
+                    {
+                        //if the frame was created within the last second, then don't extract the same second of video since we are blurring it hard core.
+                        //no one will notice.
+                        if (TimeSpan.FromTicks(lastTimeImageExtracted).Add(TimeSpan.FromMilliseconds(MillisecondsToCutNewFrameWithBlur)) < TimeSpan.FromTicks(overlays[i].StartTicks))
+                        {
+                            imageFromFrame = ExtractSingleFrame(overlays[i].StartTicks, ImageFormat.Png);
+                            bitmapFromImage = new Bitmap(imageFromFrame);
+                            lastTimeImageExtracted = overlays[i].StartTicks;
+                        }
+
+                        Rectangle srcRect = new Rectangle(overlays[i].Offset.X, overlays[i].Offset.Y, overlays[i].Size.Width, overlays[i].Size.Height);
+                        Bitmap card = (Bitmap)bitmapFromImage.Clone(srcRect, bitmapFromImage.PixelFormat);
+                        //cutting rect from image and getting ready to save it as a ellipse or rect.
+                        var pixellated = ImageHelper.Pixelate(card, PixelateSize);
+                        pixellated.Save(overlays[i].Path, System.Drawing.Imaging.ImageFormat.Png);
+
+                    }
                     testParamsLength += overlays[i].InitializeOutputString;
                 }
 
@@ -502,6 +530,8 @@ namespace FFMpegNet
             return tempOutputFile;
         }
 
+
+
         private string SingleOverlayPass(List<Overlay> overlays, string inputFile)
         {
             string VideoFilterInputs = string.Empty;
@@ -513,7 +543,6 @@ namespace FFMpegNet
                 {
                     VideoFilterInputs += overlays[i].InitializeOutputString;
                 }
-
             }
 
             for (int i = 0; i < overlays.Count; i++)
@@ -526,7 +555,6 @@ namespace FFMpegNet
                         VideoFilterCommands += ",";
                 }
             }
-
 
             string extension = Path.GetExtension(inputFile);
             string tempOutputFile = Path.ChangeExtension(Path.GetTempFileName(), extension);

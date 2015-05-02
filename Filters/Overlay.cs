@@ -23,6 +23,8 @@ namespace FFMpegNet.Filters
 
         public string Path { get; set; }
 
+        public OverlayType OverlayType { get; set; }
+
         public string Name
         {
             get
@@ -56,7 +58,7 @@ namespace FFMpegNet.Filters
 
 
 
-        public Overlay(long start, long end, Size size, WatermarkPosition position, Point offset)
+        public Overlay(long start, long end, Size size, WatermarkPosition position, Point offset, OverlayType overlayType)
         {
             Id = Guid.NewGuid();
             StartTicks = start;
@@ -64,6 +66,7 @@ namespace FFMpegNet.Filters
             Size = size;
             Position = position;
             Offset = offset;
+            OverlayType = overlayType;
         }
 
     }
