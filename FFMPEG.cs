@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Drawing;
+using System.Reflection;
 
 namespace FFMpegNet
 {
@@ -17,7 +18,12 @@ namespace FFMpegNet
 
         static FFMpegService()
         {
-            FFMPEGExecutableFilePath = Environment.CurrentDirectory + ConfigurationManager.AppSettings["FFMPEGExecutableFilePath"];
+            var currentAssembly = Assembly.GetEntryAssembly();
+            var currentDirectory = new FileInfo(currentAssembly.Location).DirectoryName;
+            if (currentDirectory == null)
+                return;
+            
+            FFMPEGExecutableFilePath = currentDirectory + ConfigurationManager.AppSettings["FFMPEGExecutableFilePath"];
         }
 
 
