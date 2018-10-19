@@ -125,7 +125,8 @@ namespace FFMpegNet
 
         public Image ExtractSingleFrame(long ticksToExtract, ImageFormat type, Size dimensions)
         {
-            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+
+            string tempFile = Path.GetTempPath() + Guid.NewGuid() + "." + type.ToString();
             var span = TimeSpan.FromTicks(ticksToExtract);
 
             if (span > Duration)
@@ -169,7 +170,8 @@ namespace FFMpegNet
 
         public string ExtractVideoSegment(long ticksToExtract, long ticksTimeLapse, VideoFormat type, Size dimensions)
         {
-            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+            
+            string tempFile = Path.GetTempPath() + Guid.NewGuid() + "." + type.ToString();
             var span = TimeSpan.FromTicks(ticksToExtract);
             var spanTo = TimeSpan.FromTicks(ticksTimeLapse - ticksToExtract);
 
@@ -198,9 +200,7 @@ namespace FFMpegNet
         public string MergeAudioSegment(string audioFile, VideoFormat type)
         {
             //ffmpeg -i tmpVideo.mpg -i tmpAudioRB.wav -vcodec copy finalVideow_6.mpg
-
-            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
-
+            string tempFile = Path.GetTempPath() + Guid.NewGuid() + "." + type.ToString();
             List<string> files = new List<string>();
             files.Add(audioFile);
 
@@ -225,9 +225,7 @@ namespace FFMpegNet
 
         public string MergeAudioSegments(List<string> audioFiles, VideoFormat type)
         {
-
-            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
-
+            string tempFile = Path.GetTempPath() + Guid.NewGuid() + "." + type.ToString();
             List<string> files = audioFiles;
 
             string outputOptions = string.Empty;
@@ -262,7 +260,7 @@ namespace FFMpegNet
 
         public string ExtractAudioSegment(AudioFormat type)
         {
-            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+            string tempFile = Path.GetTempPath() + Guid.NewGuid() + "." + type.ToString();
 
             FFMPEGParameters parameters = new FFMPEGParameters()
             {
@@ -286,7 +284,7 @@ namespace FFMpegNet
 
         public string ExtractAudioSegment(long ticksToExtract, long ticksTimeLapse, AudioFormat type)
         {
-            string tempFile = Path.ChangeExtension(Path.GetTempFileName(), type.ToString());
+            string tempFile = Path.GetTempPath() + Guid.NewGuid() + "." + type.ToString();
             var span = TimeSpan.FromTicks(ticksToExtract);
             var spanTo = TimeSpan.FromTicks(ticksTimeLapse - ticksToExtract);
 
@@ -330,7 +328,9 @@ namespace FFMpegNet
         public string WatermarkVideo(string watermarkImageFilePath, bool overwrite, WatermarkPosition position, Point offset)
         {
             string extension = Path.GetExtension(FilePath);
-            string tempOutputFile = Path.ChangeExtension(Path.GetTempFileName(), extension);
+
+            string tempOutputFile = Path.GetTempPath() + Guid.NewGuid() + "." + extension;
+            
 
             string overlayFormat;
             switch (position)
@@ -423,7 +423,7 @@ namespace FFMpegNet
             {
                 if (overlays[i].Size.Width > 0 && overlays[i].Size.Height > 0)
                 {
-                    overlays[i].Path = Path.ChangeExtension(Path.GetTempFileName(), "png");
+                    overlays[i].Path = Path.GetTempPath() + Guid.NewGuid() + ".png";
 
                     if (overlays[i].OverlayType == OverlayType.Ellipse || overlays[i].OverlayType == OverlayType.Rectangle)
                     {
@@ -557,8 +557,9 @@ namespace FFMpegNet
             }
 
             string extension = Path.GetExtension(inputFile);
-            string tempOutputFile = Path.ChangeExtension(Path.GetTempFileName(), extension);
-
+            
+            string tempOutputFile = Path.GetTempPath() + Guid.NewGuid() + "." + extension;
+            
             FFMPEGParameters parameters = new FFMPEGParameters
             {
                 InputFilePath = inputFile,
